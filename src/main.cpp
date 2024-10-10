@@ -151,7 +151,7 @@ void interpretor(const std::vector<Token>& tokens) {
 
 
 int main() {
-	std::string stringCode = ","; //fileToString(RESOURCES_PATH "mandelbrot.bf"); 
+	std::string stringCode = fileToString(RESOURCES_PATH "mandelbrot.bf"); 
 	std::vector<Token> tokens;
 	if (!tokenizer(stringCode, tokens)) {
 		std::cerr << "Tokenization failed\n";
@@ -169,7 +169,7 @@ int main() {
 	
 	memcpy(executableCode, rawCode.data(), rawCode.size());
 	makeMemoryExecutable(executableCode, rawCode.size());
-	uint8_t programMemory[JIT_MEMORY_CAP * 2] = {0};
+	uint8_t programMemory[JIT_MEMORY_CAP] = {0};
 
 	((RunFunc)executableCode)(programMemory);
 	// interpretor(tokens);

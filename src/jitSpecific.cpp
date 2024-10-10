@@ -50,6 +50,7 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 		vec.insert(vec.end(), str, str + size);
 	};
 
+
 	for (const Token& tk : tokens) {
 		addresses.push_back(code.size());
 
@@ -207,6 +208,9 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 		}
 
 	};
+	// calling convention stuff
+	append_cstr_to_vector(code, "\x48\x89\xcf"); // mov rdi, rcx
+	append_cstr_to_vector(code, "\x48\x31\xc9"); // xor rcx, rcx (calling convention);
 
 	for (const Token& tk : tokens) {
 		addresses.push_back(code.size());
@@ -214,34 +218,32 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 		switch (tk.operand) {
 		case TokenType::ADD:
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x80\x01"); // add byte[rcx],
+			append_cstr_to_vector(code, "\x80\x07"); // add byte[rdi],
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			break;
 		case TokenType::SUB:
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x80\x29"); // sub byte[rcx],
+			append_cstr_to_vector(code, "\x80\x2f"); // sub byte[rdi],
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			break;
 		case TokenType::MOVE_RIGHT: {
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x48\x83\xc1"); // add rcx,
+			append_cstr_to_vector(code, "\x48\x83\xc7"); // add rdi,
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			// code.insert(code.end(), &operand, &operand + sizeof(operand)); // when operand = 1, it inserts "1 0 85 208"
 			break;
 		}
 		case TokenType::MOVE_LEFT: {
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x48\x83\xe9"); // sub rcx,
+			append_cstr_to_vector(code, "\x48\x83\xef"); // sub rdi,
 			uint32_t operand = static_cast<uint32_t>(tk.size);
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			// code.insert(code.end(), &operand, &operand + sizeof(operand));
 			break;
 		}
 		case TokenType::OUTPUT: {
-			append_cstr_to_vector(code, "\x48\x31\xc0"); // xor rax, rax
-			append_cstr_to_vector(code, "\x8a\x01");	 // mov al, byte [rcx]
-			append_cstr_to_vector(code, "\x48\x89\xcb"); // mov rbx, rcx (save value)
-			append_cstr_to_vector(code, "\x48\x89\xc1"); // mov rcx, rax (putchar needs character in cl)
+			// append_cstr_to_vector(code, "\x48\x31\xc0"); // xor rax, rax
+			append_cstr_to_vector(code, "\x8a\x0f");	 // mov cl, byte [rdi]
 			append_cstr_to_vector(code, "\x48\xba");	 // mov rdx,
 			push_uintptr(code, address_putchar);		 // mov 8 bytes
 			for (size_t i = 0; i < tk.size; ++i) {
@@ -250,7 +252,6 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 				append_cstr_to_vector(code, "\xff\xd2"); // call rdx
 				append_cstr_to_vector(code, "\x48\x83\xc4\x28"); // add rsp, 40
 			}
-			append_cstr_to_vector(code, "\x48\x89\xd9"); // mov rcx, rbx (restore)
 			break;
 		}
 		case TokenType::INPUT: {
@@ -261,7 +262,7 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 		}
 		case TokenType::JUMP_FWD: {
 			assert(tk.size <= tokens.size());
-			append_cstr_to_vector(code, "\x8a\x01"); // mov al, byte [rcx]
+			append_cstr_to_vector(code, "\x8a\x07"); // mov al, byte [rdi]
 			append_cstr_to_vector(code, "\x84\xc0"); // test al, al
 			append_cstr_to_vector(code, "\x0f\x84"); // jz
 			size_t operand_byte_addr = code.size();
@@ -275,7 +276,7 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			break;
 		}
 		case TokenType::JUMP_BACK: {
-			append_cstr_to_vector(code, "\x8a\x01"); // mov al, byte [rcx]
+			append_cstr_to_vector(code, "\x8a\x07"); // mov al, byte [rdi]
 			append_cstr_to_vector(code, "\x84\xc0"); // test al, al
 			append_cstr_to_vector(code, "\x0f\x85"); // jnz
 			size_t operand_byte_addr = code.size();
