@@ -159,6 +159,8 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 #define NOMINMAX
 #include <Windows.h>
 
+static const uintptr_t address_putchar = reinterpret_cast<uintptr_t>(&putchar);
+
 void* getExecutableMemory(size_t size) {
 	void* ptr = VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	if (!ptr) {
@@ -193,7 +195,6 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	backpatches.reserve(tokens.size()); // assuming every operation is jump
 	code.reserve(tokens.size() * 4);	// NOT EVEN CLOSE
 
-	uintptr_t address_putchar = reinterpret_cast<uintptr_t>(&putchar);
 
 	auto append_cstr_to_vector = [](std::vector<uint8_t>& vec, const char* str, size_t size = 0) {
 		if (size == 0)
