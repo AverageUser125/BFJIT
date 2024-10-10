@@ -147,11 +147,55 @@ void interpretor(const std::vector<Token>& tokens) {
 
 }
 
-int main() {
+bool parseArguments(int argc, char* argv[], std::string& inputFile) {
+	assert(inputFile.empty());
 
-	bool jit = true;
+	#ifndef NDEBUG
+	if (argc == 1) {
+		inputFile = RESOURCES_PATH "mandelbrot.bf";
+		return false;
+	}
+	#endif
 
-	std::string stringCode = fileToString(RESOURCES_PATH "mandelbrot.bf"); 
+	// Check valid argument count
+	if (argc < 2 || argc > 3) {
+		std::cerr << "Usage: " << argv[0] << " [--no-jit] <input.bf>\n";
+		return false; // Indicates an error
+	}
+
+	bool noJitFlag = false;
+
+	// Check for the JIT flag and the input file
+	if (argc == 3) { // Two arguments
+		if (std::string(argv[1]) == "--no-jit") {
+			noJitFlag = true;
+			inputFile = argv[2]; // The input file is the second argument
+		} else if (std::string(argv[2]) == "--no-jit") {
+			inputFile = argv[1]; // The input file is the first argument
+			noJitFlag = true;
+		} else {
+			std::cerr << "Error: Invalid argument '" << argv[2] << "'.\n";
+			return false; // Indicates an error
+		}
+	} else {				 // argc == 2, only one argument is provided
+		inputFile = argv[1]; // The input file is the only argument
+	}
+
+	// Validate that an input file is specified
+	if (inputFile.empty()) {
+		std::cerr << "Usage: " << argv[0] << " <input.bf> [--no-jit]\n";
+		return false; // Indicates an error
+	}
+
+	return noJitFlag; // Return JIT flag status
+}
+
+
+int main(int argc, char** argv) {
+	std::string filepath; 
+	bool no_jit = parseArguments(argc, argv, filepath);
+
+	std::string stringCode = fileToString(filepath); 
 	std::vector<Token> tokens;
 	if (!tokenizer(stringCode, tokens)) {
 		std::cerr << "Tokenization failed\n";
@@ -159,12 +203,12 @@ int main() {
 	}
 
 
-	if (jit) {
+	if (no_jit) {
+		interpretor(tokens);
+	} else {
 		std::vector<uint8_t> rawCode;
 		jit_compile(tokens, rawCode);
 		jit_run(rawCode);
-	} else {
-		interpretor(tokens);
 	}
 	return EXIT_SUCCESS;
 }

@@ -1,4 +1,4 @@
-#include "runner.hpp"
+#include "jit.hpp"
 #include "main.hpp"
 #include "executableMemory.hpp"
 #include <cassert>
@@ -8,7 +8,7 @@
 static const uintptr_t address_putchar = reinterpret_cast<uintptr_t>(&putchar);
 #endif
 
-bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
+void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	assert(code.empty());
 
 	std::vector<Backpatch> backpatches;
@@ -156,8 +156,6 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 		memcpy(&code[bp.operand_byte_addr], &operand, sizeof(operand));
 	}
 	append_cstr_to_vector(code, "\xC3"); // ret
-
-	return true;
 }
 
 void jit_run(const std::vector<uint8_t> code) {
