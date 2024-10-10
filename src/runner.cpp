@@ -1,38 +1,9 @@
-#include <iostream>
+#include "runner.hpp"
 #include "main.hpp"
-#include <vector>
+#include "executableMemory.hpp"
 #include <cassert>
-#include <cstring>
-#include <cinttypes>
-#include <iomanip> // For std::hex and std::setfill
 
-
-#ifdef __linux__
-#include <sys/mman.h>
-
-void* getExecutableMemory(size_t size) {
-	void* ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if (ptr == MAP_FAILED) {
-		return nullptr;
-	}
-	return ptr;
-}
-
-bool makeMemoryExecutable(void* ptr, size_t size) {
-	if (mprotect(ptr, size, PROT_READ | PROT_EXEC) != 0) {
-		std::cerr << "Failed to make memory executable\n";
-		return false;
-	}
-	return true;
-}
-
-void freeExectuableMemory(void*& ptr, size_t size) {
-	if (ptr) {
-		munmap(ptr, sizeof(ptr));
-	}
-	ptr = nullptr;
-}
-
+#if PLATFORM_LINUX
 bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	std::cin.clear();
 	assert(code.empty());
@@ -154,39 +125,10 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	return false;
 }
 
-#elif defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>
+#elif PLATFORM_WINDOWS
 
 static const uintptr_t address_putchar = reinterpret_cast<uintptr_t>(&putchar);
-
-void* getExecutableMemory(size_t size) {
-	void* ptr = VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-	if (!ptr) {
-		return nullptr;
-	}
-	return ptr;
-}
-
-bool makeMemoryExecutable(void* ptr, size_t size) {
-	DWORD oldProtection;
-	if (!VirtualProtect(ptr, size, PAGE_EXECUTE_READ, &oldProtection)) {
-		std::cerr << "Failed to make memory executable\n";
-		return false;
-	}
-	return true;
-}
-
-void freeExecutableMemory(void*& ptr) {
-	if (ptr) {
-		VirtualFree(ptr, 0, MEM_RELEASE);
-	}
-	ptr = nullptr;
-}
-
 bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
-	std::cin.clear();
 	assert(code.empty());
 
 	std::vector<Backpatch> backpatches;
@@ -207,7 +149,6 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			vec.push_back(static_cast<uint8_t>(value & 0xFF));
 			value >>= 8; // Shift right by 8 bits to get the next byte
 		}
-
 	};
 	// calling convention stuff
 	append_cstr_to_vector(code, "\x48\x89\xcf"); // mov rdi, rcx
@@ -244,13 +185,13 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 		}
 		case TokenType::OUTPUT: {
 			// append_cstr_to_vector(code, "\x48\x31\xc0"); // xor rax, rax
-			append_cstr_to_vector(code, "\x8a\x0f");	 // mov cl, byte [rdi]
-			append_cstr_to_vector(code, "\x48\xba");	 // mov rdx,
-			push_uintptr(code, address_putchar);		 // mov 8 bytes
+			append_cstr_to_vector(code, "\x8a\x0f"); // mov cl, byte [rdi]
+			append_cstr_to_vector(code, "\x48\xba"); // mov rdx,
+			push_uintptr(code, address_putchar);	 // mov 8 bytes
 			for (size_t i = 0; i < tk.size; ++i) {
 
 				append_cstr_to_vector(code, "\x48\x83\xec\x28"); // sub rsp, 40
-				append_cstr_to_vector(code, "\xff\xd2"); // call rdx
+				append_cstr_to_vector(code, "\xff\xd2");		 // call rdx
 				append_cstr_to_vector(code, "\x48\x83\xc4\x28"); // add rsp, 40
 			}
 			break;
@@ -310,3 +251,14 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	return true;
 }
 #endif
+
+void jit_run(const std::vector<uint8_t> code) {
+
+	void* executableCode = getExecutableMemory(code.size());
+
+	memcpy(executableCode, code.data(), code.size());
+	makeMemoryExecutable(executableCode, code.size());
+	uint8_t programMemory[JIT_MEMORY_CAP] = {0};
+
+	((RunFunc)executableCode)(programMemory);
+}

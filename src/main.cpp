@@ -8,10 +8,9 @@
 #include <sstream>
 #include <cassert>
 #include <cinttypes>
-#include <jitSpecific.hpp>
 #include <iomanip> // For std::hex and std::setfill
-#include <main.hpp>
-
+#include "main.hpp"
+#include "runner.hpp"
 void printHexArray(const std::vector<uint8_t>& data) {
 	std::cout << "{ ";
 	for (size_t i = 0; i < data.size(); ++i) {
@@ -149,7 +148,6 @@ void interpretor(const std::vector<Token>& tokens) {
 
 }
 
-
 int main() {
 	std::string stringCode = fileToString(RESOURCES_PATH "mandelbrot.bf"); 
 	std::vector<Token> tokens;
@@ -165,13 +163,7 @@ int main() {
 	std::vector<uint8_t> rawCode;
 	jit_compile(tokens, rawCode);
 	// printHexArray(rawCode);
-	void* executableCode = getExecutableMemory(rawCode.size());
-	
-	memcpy(executableCode, rawCode.data(), rawCode.size());
-	makeMemoryExecutable(executableCode, rawCode.size());
-	uint8_t programMemory[JIT_MEMORY_CAP] = {0};
-
-	((RunFunc)executableCode)(programMemory);
+	jit_run(rawCode);
 	// interpretor(tokens);
 
 	return EXIT_SUCCESS;
