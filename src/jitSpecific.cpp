@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstring>
 #include <cinttypes>
+#include <iomanip> // For std::hex and std::setfill
 
 
 #ifdef __linux__
@@ -190,19 +191,20 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	backpatches.reserve(tokens.size()); // assuming every operation is jump
 	code.reserve(tokens.size() * 4);	// NOT EVEN CLOSE
 
-	
-	FARPROC address_GetStdHandle = reinterpret_cast<FARPROC>(&GetStdHandle);
-	std::cout << address_GetStdHandle;
-	FARPROC address_WriteConsoleA = reinterpret_cast<FARPROC>(&WriteConsoleA);
-	GetStdHandle(-11);
-	//uintptr_t address_ReadConsoleA =
-	//	reinterpret_cast<uintptr_t>(GetProcAddress(GetModuleHandleA("kernel32.dll"), "ReadConsoleA"));
-	; // Replace with actual address
+	uintptr_t address_putchar = reinterpret_cast<uintptr_t>(&putchar);
 
 	auto append_cstr_to_vector = [](std::vector<uint8_t>& vec, const char* str, size_t size = 0) {
 		if (size == 0)
 			size = strlen(str);
 		vec.insert(vec.end(), str, str + size);
+	};
+	auto push_uintptr = [](std::vector<uint8_t>& vec, uintptr_t value) {
+		// little endian storing
+		for (size_t i = 0; i < sizeof(uintptr_t); ++i) {
+			vec.push_back(static_cast<uint8_t>(value & 0xFF));
+			value >>= 8; // Shift right by 8 bits to get the next byte
+		}
+
 	};
 
 	for (const Token& tk : tokens) {
@@ -235,23 +237,19 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			break;
 		}
 		case TokenType::OUTPUT: {
-
-			append_cstr_to_vector(code, "\x48\xc7\xc7\xf5\xff\xff\xff"); // mov rdi, -11 (STD_OUTPUT_HANDLE)
-			append_cstr_to_vector(code, "\xff\x15");                     // call GetStdHandle
-			append_cstr_to_vector(code, "\x00\x80\x33\x69\xf6\x7f\x00", 7); 
-			
-			// append_cstr_to_vector(code, "\x00\x7F\xF6\x69\x33\x80\x00", 7); // should be reverse
-			
-			//code.insert(code.end(), reinterpret_cast<uint8_t*>(&address_GetStdHandle),
-			//			reinterpret_cast<uint8_t*>(&address_GetStdHandle) + sizeof(uintptr_t));
-			append_cstr_to_vector(code, "\x48\x89\x6");                 // mov rsi, rax (stdout handle)
-			append_cstr_to_vector(code, "\x8a\x01");	                // mov al, byte [rcx]
-			append_cstr_to_vector(code, "\x48\xc7\xc2\x01\x00\x00\x00", 7); // mov rdx, 1
+			append_cstr_to_vector(code, "\x48\x31\xc0"); // xor rax, rax
+			append_cstr_to_vector(code, "\x8a\x01");	 // mov al, byte [rcx]
+			append_cstr_to_vector(code, "\x48\x89\xcb"); // mov rbx, rcx (save value)
+			append_cstr_to_vector(code, "\x48\x89\xc1"); // mov rcx, rax (putchar needs character in cl)
+			append_cstr_to_vector(code, "\x48\xba");	 // mov rdx,
+			push_uintptr(code, address_putchar);		 // mov 8 bytes
 			for (size_t i = 0; i < tk.size; ++i) {
-				append_cstr_to_vector(code, "\xff\x15"); // call GetStdHandle
-				code.insert(code.end(), reinterpret_cast<uint8_t*>(&address_WriteConsoleA),
-							reinterpret_cast<uint8_t*>(&address_WriteConsoleA) + sizeof(uintptr_t));
+
+				append_cstr_to_vector(code, "\x48\x83\xec\x28"); // sub rsp, 40
+				append_cstr_to_vector(code, "\xff\xd2"); // call rdx
+				append_cstr_to_vector(code, "\x48\x83\xc4\x28"); // add rsp, 40
 			}
+			append_cstr_to_vector(code, "\x48\x89\xd9"); // mov rcx, rbx (restore)
 			break;
 		}
 		case TokenType::INPUT: {
