@@ -91,6 +91,7 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			}
 			break;
 		case TokenType::INPUT:
+			assert(0 && "NOT WORKING");
 			for (size_t i = 0; i < tk.size; ++i) {
 				append_cstr_to_vector(code, "\x57");							// push rdi
 				append_cstr_to_vector(code, "\x48\xc7\xc0\x01\x00\x00\x00", 7); // mov rax, 1
