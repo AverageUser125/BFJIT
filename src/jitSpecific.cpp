@@ -304,10 +304,8 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 		int32_t operand = dst_addr - src_addr;
 		memcpy(&code[bp.operand_byte_addr], &operand, sizeof(operand));
 	}
-
-
 	append_cstr_to_vector(code, "\xC3"); // ret
 
-	return false;
+	return true;
 }
 #endif

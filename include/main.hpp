@@ -2,7 +2,7 @@
 
 #define JIT_MEMORY_CAP 512
 
-enum class BfTokenType {
+enum class TokenType {
 	ADD = '+',
 	SUB = '-',
 	MOVE_RIGHT = '>',
@@ -14,13 +14,13 @@ enum class BfTokenType {
 };
 
 struct Token {
-	BfTokenType operand;
+	TokenType operand;
 	size_t size;
 
-	Token(BfTokenType _kind, size_t _size) : operand(_kind), size(_size) {
+	Token(TokenType _kind, size_t _size) : operand(_kind), size(_size) {
 	}
 
-	Token(size_t _size, BfTokenType _kind) : operand(_kind), size(_size) {
+	Token(size_t _size, TokenType _kind) : operand(_kind), size(_size) {
 	}
 };
 
