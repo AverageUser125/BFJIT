@@ -5,9 +5,9 @@
 #include <cstring>
 #include <cinttypes>
 
+
 #ifdef __linux__
 #include <sys/mman.h>
-
 
 void* getExecutableMemory(size_t size) {
 	void* ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -31,7 +31,6 @@ void freeExectuableMemory(void*& ptr, size_t size) {
 	}
 	ptr = nullptr;
 }
-
 
 bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	std::cin.clear();
@@ -191,6 +190,14 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	backpatches.reserve(tokens.size()); // assuming every operation is jump
 	code.reserve(tokens.size() * 4);	// NOT EVEN CLOSE
 
+	
+	uintptr_t address_GetStdHandle = reinterpret_cast<uintptr_t>(&GetStdHandle);
+	std::cout << address_GetStdHandle;
+	uintptr_t address_WriteConsoleA = reinterpret_cast<uintptr_t>(&WriteConsoleA);
+	GetStdHandle(-11);
+	//uintptr_t address_ReadConsoleA =
+	//	reinterpret_cast<uintptr_t>(GetProcAddress(GetModuleHandleA("kernel32.dll"), "ReadConsoleA"));
+	; // Replace with actual address
 
 	auto append_cstr_to_vector = [](std::vector<uint8_t>& vec, const char* str, size_t size = 0) {
 		if (size == 0)
@@ -204,54 +211,53 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 		switch (tk.operand) {
 		case TokenType::ADD:
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x80\x07"); // add byte[rdi],
+			append_cstr_to_vector(code, "\x80\x01"); // add byte[rcx],
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			break;
 		case TokenType::SUB:
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x80\x2f"); // sub byte[rdi],
+			append_cstr_to_vector(code, "\x80\x29"); // sub byte[rcx],
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			break;
 		case TokenType::MOVE_RIGHT: {
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x48\x83\xc7"); // add rdi,
+			append_cstr_to_vector(code, "\x48\x83\xc1"); // add rcx,
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			// code.insert(code.end(), &operand, &operand + sizeof(operand)); // when operand = 1, it inserts "1 0 85 208"
 			break;
 		}
 		case TokenType::MOVE_LEFT: {
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x48\x83\xef"); // sub rdi,
+			append_cstr_to_vector(code, "\x48\x83\xe9"); // sub rcx,
 			uint32_t operand = static_cast<uint32_t>(tk.size);
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			// code.insert(code.end(), &operand, &operand + sizeof(operand));
 			break;
 		}
-		case TokenType::OUTPUT:
+		case TokenType::OUTPUT: {
+			append_cstr_to_vector(code, "\x48\xc7\xc7\xf5\xff\xff\xff"); // mov rdi, -11 (STD_OUTPUT_HANDLE)
+			append_cstr_to_vector(code, "\xff\x15");                     // call GetStdHandle
+			code.insert(code.end(), reinterpret_cast<uint8_t*>(&address_GetStdHandle),
+						reinterpret_cast<uint8_t*>(&address_GetStdHandle) + sizeof(uintptr_t));
+			append_cstr_to_vector(code, "\x48\x89\x6");                 // mov rsi, rax (stdout handle)
+			append_cstr_to_vector(code, "\x8a\x01");	                // mov al, byte [rcx]
+			append_cstr_to_vector(code, "\x48\xc7\xc2\x01\x00\x00\x00", 7); // mov rdx, 1
 			for (size_t i = 0; i < tk.size; ++i) {
-				append_cstr_to_vector(code, "\x57");							// push rdi
-				append_cstr_to_vector(code, "\x48\xc7\xc0\x01\x00\x00\x00", 7); // mov rax, 1
-				append_cstr_to_vector(code, "\x48\x89\xfe");					// mov rsi, rdi
-				append_cstr_to_vector(code, "\x48\xc7\xc7\x01\x00\x00\x00", 7); // mov rdi, 1
-				append_cstr_to_vector(code, "\x48\xc7\xc2\x01\x00\x00\x00", 7); // mov rdx, 1
-				append_cstr_to_vector(code, "\x0f\x05");						// syscall
-				append_cstr_to_vector(code, "\x5f");							// pop rdi
+				append_cstr_to_vector(code, "\xff\x15"); // call GetStdHandle
+				code.insert(code.end(), reinterpret_cast<uint8_t*>(&address_WriteConsoleA),
+							reinterpret_cast<uint8_t*>(&address_WriteConsoleA) + sizeof(uintptr_t));
 			}
 			break;
-		case TokenType::INPUT:
+		}
+		case TokenType::INPUT: {
 			for (size_t i = 0; i < tk.size; ++i) {
-				append_cstr_to_vector(code, "\x57");							// push rdi
-				append_cstr_to_vector(code, "\x48\xc7\xc0\x01\x00\x00\x00", 7); // mov rax, 1
-				append_cstr_to_vector(code, "\x48\x89\xfe");					// mov rsi, rdi
-				append_cstr_to_vector(code, "\x48\xc7\xc7\x00\x00\x00\x00", 7); // mov rdi, 0
-				append_cstr_to_vector(code, "\x48\xc7\xc2\x01\x00\x00\x00", 7); // mov rdx, 1
-				append_cstr_to_vector(code, "\x0f\x05");						// syscall
-				append_cstr_to_vector(code, "\x5f");							// pop rdi
+				assert(0 && "NOT IMPLEMENTED");
 			}
 			break;
+		}
 		case TokenType::JUMP_FWD: {
 			assert(tk.size <= tokens.size());
-			append_cstr_to_vector(code, "\x8a\x07"); // mov al, byte [rdi]
+			append_cstr_to_vector(code, "\x8a\x01"); // mov al, byte [rcx]
 			append_cstr_to_vector(code, "\x84\xc0"); // test al, al
 			append_cstr_to_vector(code, "\x0f\x84"); // jz
 			size_t operand_byte_addr = code.size();
@@ -265,7 +271,7 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			break;
 		}
 		case TokenType::JUMP_BACK: {
-			append_cstr_to_vector(code, "\x8a\x07"); // mov al, byte [rdi]
+			append_cstr_to_vector(code, "\x8a\x01"); // mov al, byte [rcx]
 			append_cstr_to_vector(code, "\x84\xc0"); // test al, al
 			append_cstr_to_vector(code, "\x0f\x85"); // jnz
 			size_t operand_byte_addr = code.size();
@@ -299,5 +305,4 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 
 	return false;
 }
-
 #endif

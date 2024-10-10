@@ -151,7 +151,7 @@ void interpretor(const std::vector<Token>& tokens) {
 
 
 int main() {
-	std::string stringCode = ">+";  // fileToString(RESOURCES_PATH "hello.bf"); 
+	std::string stringCode = "++++++++++++++++++++++++++++++++++++++++++++++++.";  // fileToString(RESOURCES_PATH "hello.bf"); 
 	std::vector<Token> tokens;
 	if (!tokenizer(stringCode, tokens)) {
 		std::cerr << "Tokenization failed\n";
