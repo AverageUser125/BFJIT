@@ -2,6 +2,7 @@
 #include "main.hpp"
 #include "executableMemory.hpp"
 #include <cassert>
+#include <cstring>
 
 #if PLATFORM_WINDOWS
 static const uintptr_t address_putchar = reinterpret_cast<uintptr_t>(&putchar);
