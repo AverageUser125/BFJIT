@@ -191,9 +191,9 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	code.reserve(tokens.size() * 4);	// NOT EVEN CLOSE
 
 	
-	uintptr_t address_GetStdHandle = reinterpret_cast<uintptr_t>(&GetStdHandle);
+	FARPROC address_GetStdHandle = reinterpret_cast<FARPROC>(&GetStdHandle);
 	std::cout << address_GetStdHandle;
-	uintptr_t address_WriteConsoleA = reinterpret_cast<uintptr_t>(&WriteConsoleA);
+	FARPROC address_WriteConsoleA = reinterpret_cast<FARPROC>(&WriteConsoleA);
 	GetStdHandle(-11);
 	//uintptr_t address_ReadConsoleA =
 	//	reinterpret_cast<uintptr_t>(GetProcAddress(GetModuleHandleA("kernel32.dll"), "ReadConsoleA"));
@@ -235,10 +235,15 @@ bool jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			break;
 		}
 		case TokenType::OUTPUT: {
+
 			append_cstr_to_vector(code, "\x48\xc7\xc7\xf5\xff\xff\xff"); // mov rdi, -11 (STD_OUTPUT_HANDLE)
 			append_cstr_to_vector(code, "\xff\x15");                     // call GetStdHandle
-			code.insert(code.end(), reinterpret_cast<uint8_t*>(&address_GetStdHandle),
-						reinterpret_cast<uint8_t*>(&address_GetStdHandle) + sizeof(uintptr_t));
+			append_cstr_to_vector(code, "\x00\x80\x33\x69\xf6\x7f\x00", 7); 
+			
+			// append_cstr_to_vector(code, "\x00\x7F\xF6\x69\x33\x80\x00", 7); // should be reverse
+			
+			//code.insert(code.end(), reinterpret_cast<uint8_t*>(&address_GetStdHandle),
+			//			reinterpret_cast<uint8_t*>(&address_GetStdHandle) + sizeof(uintptr_t));
 			append_cstr_to_vector(code, "\x48\x89\x6");                 // mov rsi, rax (stdout handle)
 			append_cstr_to_vector(code, "\x8a\x01");	                // mov al, byte [rcx]
 			append_cstr_to_vector(code, "\x48\xc7\xc2\x01\x00\x00\x00", 7); // mov rdx, 1
