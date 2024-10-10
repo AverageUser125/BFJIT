@@ -10,7 +10,7 @@
 #include <cinttypes>
 #include <iomanip> // For std::hex and std::setfill
 #include "main.hpp"
-#include "runner.hpp"
+#include "jit.hpp"
 void printHexArray(const std::vector<uint8_t>& data) {
 	std::cout << "{ ";
 	for (size_t i = 0; i < data.size(); ++i) {
@@ -22,7 +22,6 @@ void printHexArray(const std::vector<uint8_t>& data) {
 	std::cout << " }" << std::endl;
 }
 
-// #define JIT_MEMORY_CAP (10 * 1000 * 1000)
 
 std::string fileToString(const std::string& filename) {
 	std::ifstream f(filename);
@@ -149,6 +148,9 @@ void interpretor(const std::vector<Token>& tokens) {
 }
 
 int main() {
+
+	bool jit = true;
+
 	std::string stringCode = fileToString(RESOURCES_PATH "mandelbrot.bf"); 
 	std::vector<Token> tokens;
 	if (!tokenizer(stringCode, tokens)) {
@@ -156,15 +158,13 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
-	// interpretor(tokens);
-	std::cout << '\n';
-	// return EXIT_SUCCESS;
 
-	std::vector<uint8_t> rawCode;
-	jit_compile(tokens, rawCode);
-	// printHexArray(rawCode);
-	jit_run(rawCode);
-	// interpretor(tokens);
-
+	if (jit) {
+		std::vector<uint8_t> rawCode;
+		jit_compile(tokens, rawCode);
+		jit_run(rawCode);
+	} else {
+		interpretor(tokens);
+	}
 	return EXIT_SUCCESS;
 }
