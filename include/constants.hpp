@@ -13,6 +13,24 @@
 	const auto name = __##name.data();                                                                                       \
 	const std::size_t name##_SIZE = __##name.size() / sizeof(name[0]); 
 
+CREATE_ARRAY(ADD_BYTES, 0x80, 0x07); // add byte[rdi],
+CREATE_ARRAY(SUB_BYTES, 0x80, 0x2f); // sub byte[rdi],
+CREATE_ARRAY(MOVE_RIGHT_BYTES, 0x48, 0x83, 0xc7); // add rdi,
+CREATE_ARRAY(MOVE_LEFT_BYTES, 0x48, 0x83, 0xef); // sub rdi,
+
+CREATE_ARRAY(JUMP_FWD_BYTES, 
+	0x8a, 0x07, // mov al, byte [rdi]
+	0x84, 0xc0, // test al, al
+	0x0f, 0x84  // jz
+);
+
+CREATE_ARRAY(JUMP_BACK_BYTES,
+	0x8a, 0x07, // mov al, byte [rdi]
+	0x84, 0xc0,	// test al, al
+	0x0f, 0x85  // jz
+);
+
+
 #if PLATFORM_LINUX
 CREATE_ARRAY(START_BYTES);
 
@@ -37,7 +55,6 @@ CREATE_ARRAY(INPUT_BYTES_REPEAT,
 			 0x0f, 0x05,							   // syscall
 			 0x5f									   // pop rdi
 );
-
 
 
 #elif PLATFORM_WINDOWS
@@ -68,30 +85,12 @@ CREATE_ARRAY(START_BYTES, 0x48, 0x89, 0xcf, // mov rdi, rcx
 			 0x48, 0x31, 0xc9				// xor rcx, rcx
 );
 
-CREATE_ARRAY(OUTPUT_BYTES_REPEAT, 
-	0x48, 0x83, 0xec, 0x28, // sub rsp, 40
-	0xff, 0xd2,								  // call rdx
-	0x48, 0x83, 0xc4, 0x28	 // add rsp, 40
+CREATE_ARRAY(OUTPUT_BYTES_REPEAT, 0x48, 0x83, 0xec, 0x28, // sub rsp, 40
+			 0xff, 0xd2,								  // call rdx
+			 0x48, 0x83, 0xc4, 0x28						  // add rsp, 40
 );
 
 CREATE_RUNTIME_ARRAY(OUTPUT_BYTES_START, createOutputStart);
 #endif
-
-CREATE_ARRAY(ADD_BYTES, 0x80, 0x07); // add byte[rdi],
-CREATE_ARRAY(SUB_BYTES, 0x80, 0x2f); // sub byte[rdi],
-CREATE_ARRAY(MOVE_RIGHT_BYTES, 0x48, 0x83, 0xc7); // add rdi,
-CREATE_ARRAY(MOVE_LEFT_BYTES, 0x48, 0x83, 0xef); // sub rdi,
-
-CREATE_ARRAY(JUMP_FWD_BYTES, 
-	0x8a, 0x07, // mov al, byte [rdi]
-	0x84, 0xc0, // test al, al
-	0x0f, 0x84  // jz
-);
-
-CREATE_ARRAY(JUMP_BACK_BYTES,
-	0x8a, 0x07, // mov al, byte [rdi]
-	0x84, 0xc0,	// test al, al
-	0x0f, 0x85  // jz
-);
 
 #endif // CONSTANTS_HPP
