@@ -34,7 +34,7 @@ void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			break;
 		case TokenType::MOVE_RIGHT: {
-			size_t size = tk.size;
+			int size = tk.size;
 			while (size > 0) {
 				append_to_vector(code, MOVE_RIGHT_BYTES, MOVE_RIGHT_BYTES_SIZE);
 				code.push_back(static_cast<uint8_t>(size & 0xFF));
@@ -43,7 +43,7 @@ void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			break;
 		}
 		case TokenType::MOVE_LEFT: {
-			size_t size = tk.size;
+			int size = tk.size;
 			while (size > 0) {
 				append_to_vector(code, MOVE_LEFT_BYTES, MOVE_LEFT_BYTES_SIZE);
 				code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
