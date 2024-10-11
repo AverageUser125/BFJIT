@@ -26,12 +26,10 @@ void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 
 		switch (tk.operand) {
 		case TokenType::ADD:
-			assert(tk.size < 256 && "TODO: support bigger operands");
 			append_to_vector(code, ADD_BYTES, ADD_BYTES_SIZE);
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			break;
 		case TokenType::SUB:
-			assert(tk.size < 256 && "TODO: support bigger operands");
 			append_to_vector(code, SUB_BYTES, SUB_BYTES_SIZE);
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			break;

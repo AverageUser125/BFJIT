@@ -9,8 +9,8 @@
 	constexpr std::size_t name##_SIZE = sizeof(name) / sizeof(name[0]);
 
 #define CREATE_RUNTIME_ARRAY(name, func)                                                                              \
-    auto __##name = func();                                                                                            \
-	auto name = __##name.data();                                                                                       \
+    const auto __##name = func();                                                                                            \
+	const auto name = __##name.data();                                                                                       \
 	const std::size_t name##_SIZE = __##name.size() / sizeof(name[0]); 
 
 #if PLATFORM_LINUX
@@ -42,7 +42,7 @@ CREATE_ARRAY(INPUT_BYTES_REPEAT,
 
 #elif PLATFORM_WINDOWS
 static const uintptr_t address_putchar = reinterpret_cast<uintptr_t>(&putchar);
-auto createOutputStart = []() {
+const auto createOutputStart = []() {
 	// Define a byte array of 12 bytes
 	std::array<uint8_t, 12> byteArray = {
 		0x8a, 0x0f,				// mov cl, byte [rdi]
