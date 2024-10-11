@@ -115,7 +115,7 @@ void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 
 void jit_run(const std::vector<uint8_t> code) {
 
-	void* executableCode = getExecutableMemory(code.size());
+	void* executableCode = getRawMemory(code.size());
 
 	memcpy(executableCode, code.data(), code.size());
 	makeMemoryExecutable(executableCode, code.size());

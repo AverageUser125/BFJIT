@@ -10,7 +10,7 @@
 #if PLATFORM_LINUX
 #include <sys/mman.h>
 
-void* getExecutableMemory(size_t size) {
+void* getRawMemory(size_t size) {
 	void* ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (ptr == MAP_FAILED) {
 		return nullptr;
@@ -39,7 +39,7 @@ void freeExectuableMemory(void*& ptr, size_t size) {
 #define NOMINMAX
 #include <Windows.h>
 
-void* getExecutableMemory(size_t size) {
+void* getRawMemory(size_t size) {
 	void* ptr = VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	if (!ptr) {
 		return nullptr;
