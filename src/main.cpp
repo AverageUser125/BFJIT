@@ -152,7 +152,7 @@ bool parseArguments(int argc, char* argv[], std::string& inputFile) {
 
 	#ifndef NDEBUG
 	if (argc == 1) {
-		inputFile = RESOURCES_PATH "cat.bf";
+		inputFile = RESOURCES_PATH "hello.bf";
 		return false;
 	}
 	#endif

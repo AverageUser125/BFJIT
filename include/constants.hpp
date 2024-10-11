@@ -52,8 +52,7 @@ static const uintptr_t address_getchar = reinterpret_cast<uintptr_t>(&getchar);
 
 CREATE_NOTHING(START_BYTES);
 
-CREATE_ARRAY(OUTPUT_BYTES_START);
-CREATE_ARRAY(OUTPUT_BYTES_REPEAT,
+CREATE_ARRAY(OUTPUT_BYTES,
 			 0x57,									   // push rdi
 			 0x48, 0xc7, 0xc0, 0x01, 0x00, 0x00, 0x00, // mov rax, 1
 			 0x48, 0x89, 0xfe,						   // mov rsi, rdi
@@ -80,11 +79,14 @@ static const uintptr_t address_putchar = reinterpret_cast<uintptr_t>(&putchar);
 
 const auto createOutputStart = []() {
 	// Define a byte array of 12 bytes
-	std::array<uint8_t, 12> byteArray = {
+	std::array<uint8_t, 22> byteArray = {
 		0x8a, 0x0f,				// mov cl, byte [rdi]
 		0x48, 0xba,				// mov rdx,
 		0x00, 0x00, 0x00, 0x00, // Placeholder for address (first 4 bytes)
-		0x00, 0x00, 0x00, 0x00	// Placeholder for address (last 4 bytes)
+		0x00, 0x00, 0x00, 0x00,	// Placeholder for address (last 4 bytes)
+		0x48, 0x83, 0xec, 0x28, // sub rsp, 40
+		0xff, 0xd2,				// call rdx
+		0x48, 0x83, 0xc4, 0x28	// add rsp, 40
 	};
 	convertToLittleEndian(byteArray.data() + 4, address_putchar);
 	// Update the address in little-endian format
@@ -96,12 +98,7 @@ CREATE_ARRAY(START_BYTES, 0x48, 0x89, 0xcf, // mov rdi, rcx
 			 0x48, 0x31, 0xc9				// xor rcx, rcx
 );
 
-CREATE_ARRAY(OUTPUT_BYTES_REPEAT, 0x48, 0x83, 0xec, 0x28, // sub rsp, 40
-			 0xff, 0xd2,								  // call rdx
-			 0x48, 0x83, 0xc4, 0x28						  // add rsp, 40
-);
-
-CREATE_RUNTIME_ARRAY(OUTPUT_BYTES_START, createOutputStart);
+CREATE_RUNTIME_ARRAY(OUTPUT_BYTES, createOutputStart);
 
 // TODO: input for windows
 CREATE_NOTHING(INPUT_BYTES_REPEAT);

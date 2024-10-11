@@ -52,9 +52,8 @@ void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			break;
 		}
 		case TokenType::OUTPUT:
-			append_to_vector(code, OUTPUT_BYTES_START, OUTPUT_BYTES_START_SIZE);
 			for (size_t i = 0; i < tk.size; ++i) {
-				append_to_vector(code, OUTPUT_BYTES_REPEAT, OUTPUT_BYTES_REPEAT_SIZE);
+				append_to_vector(code, OUTPUT_BYTES, OUTPUT_BYTES_SIZE);
 			}
 			break;
 		case TokenType::INPUT:
