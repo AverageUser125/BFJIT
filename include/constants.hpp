@@ -17,7 +17,7 @@
 	constexpr uint8_t* name = nullptr;                                                                                 \
 	constexpr std::size_t name##_SIZE = 0;
 
-static void convertToLittleEndian(uint8_t* dst, uintptr_t value) {
+constexpr void convertToLittleEndian(uint8_t* dst, uintptr_t value) {
 	dst[0] = static_cast<uint8_t>(value & 0xFF);
 	dst[1] = static_cast<uint8_t>((value >> 8) & 0xFF);
 	dst[2] = static_cast<uint8_t>((value >> 16) & 0xFF);
