@@ -1,6 +1,6 @@
 #ifndef CONSTANTS_HPP
 #define CONSTANTS_HPP
-
+#include <cstdio>
 #include <array>
 #include "main.hpp"
 
@@ -32,6 +32,8 @@ CREATE_ARRAY(JUMP_BACK_BYTES,
 
 
 #if PLATFORM_LINUX
+static const uintptr_t address_getchar = reinterpret_cast<uintptr_t>(&getchar);
+
 CREATE_ARRAY(START_BYTES);
 
 CREATE_ARRAY(OUTPUT_BYTES_START);
@@ -92,6 +94,11 @@ CREATE_ARRAY(OUTPUT_BYTES_REPEAT, 0x48, 0x83, 0xec, 0x28, // sub rsp, 40
 );
 
 CREATE_RUNTIME_ARRAY(OUTPUT_BYTES_START, createOutputStart);
+
+// TODO: input for windows
+CREATE_ARRAY(INPUT_BYTES_REPEAT);
+CREATE_ARRAY(INPUT_BYTES_START);
+
 #endif
 
 #endif // CONSTANTS_HPP

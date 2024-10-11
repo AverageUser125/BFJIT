@@ -58,11 +58,11 @@ void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			}
 			break;
 		case TokenType::INPUT:
-			assert(0 && "NOT WORKING");
-			//append_to_vector(code, INPUT_BYTES_START, INPUT_BYTES_START_SIZE);
-			//for (size_t i = 0; i < tk.size; ++i) {
-			//	append_to_vector(code, INPUT_BYTES_REPEAT, INPUT_BYTES_REPEAT_SIZE);
-			//}
+			// assert(0 && "NOT WORKING");
+			append_to_vector(code, INPUT_BYTES_START, INPUT_BYTES_START_SIZE);
+			for (size_t i = 0; i < tk.size; ++i) {
+				append_to_vector(code, INPUT_BYTES_REPEAT, INPUT_BYTES_REPEAT_SIZE);
+			}
 			break;
 		case TokenType::JUMP_FWD: {
 			assert(tk.size <= tokens.size());
