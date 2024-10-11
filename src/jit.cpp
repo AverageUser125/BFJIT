@@ -1,12 +1,11 @@
-#include "jit.hpp"
-#include "main.hpp"
 #include "executableMemory.hpp"
+#include "jit.hpp"
 #include <cassert>
 #include <cstring>
 #include "constants.hpp"
-#include "getch.hpp"
 #include <string>
 #include <iostream>
+#include <vector>
 
 void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	assert(code.empty());

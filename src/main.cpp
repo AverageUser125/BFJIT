@@ -1,30 +1,17 @@
 #include <iostream>
 #include <string>
-#include <string.h>
-#include <stdlib.h>
 #include <vector>
 #include <stack>
 #include <fstream>
 #include <sstream>
 #include <cassert>
 #include <cinttypes>
-#include <iomanip> // For std::hex and std::setfill
 #include "main.hpp"
 #include "jit.hpp"
+#if PLATFORM_LINUX
 #include <termios.h>
+#endif
 #include <stdio.h>
-
-void printHexArray(const std::vector<uint8_t>& data) {
-	std::cout << "{ ";
-	for (size_t i = 0; i < data.size(); ++i) {
-		std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]);
-		if (i != data.size() - 1) {
-			std::cout << ", ";
-		}
-	}
-	std::cout << " }" << std::endl;
-}
-
 
 std::string fileToString(const std::string& filename) {
 	std::ifstream f(filename);

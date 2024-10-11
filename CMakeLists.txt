@@ -45,6 +45,7 @@ endif()
 
 project("${PROJECT_NAME}")
 
+
 # Add source files recursively from the src directory
 file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
