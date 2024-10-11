@@ -51,7 +51,6 @@ CREATE_ARRAY(JUMP_BACK_BYTES,
 static const uintptr_t address_getchar = reinterpret_cast<uintptr_t>(&getchar);
 
 CREATE_NOTHING(START_BYTES);
-
 CREATE_ARRAY(OUTPUT_BYTES,
 			 0x57,									   // push rdi
 			 0x48, 0xc7, 0xc0, 0x01, 0x00, 0x00, 0x00, // mov rax, 1
@@ -62,8 +61,7 @@ CREATE_ARRAY(OUTPUT_BYTES,
 			 0x5f									   // pop rdi
 );
 
-CREATE_NOTHING(INPUT_BYTES_START);
-CREATE_ARRAY(INPUT_BYTES_REPEAT,
+CREATE_ARRAY(INPUT_BYTES,
 			 0x57,									   // push rdi
 			 0x48, 0xc7, 0xc0, 0x01, 0x00, 0x00, 0x00, // mov rax, 1
 			 0x48, 0x89, 0xfe,						   // mov rsi, rdi
@@ -101,8 +99,7 @@ CREATE_ARRAY(START_BYTES, 0x48, 0x89, 0xcf, // mov rdi, rcx
 CREATE_RUNTIME_ARRAY(OUTPUT_BYTES, createOutputStart);
 
 // TODO: input for windows
-CREATE_NOTHING(INPUT_BYTES_REPEAT);
-CREATE_NOTHING(INPUT_BYTES_START);
+CREATE_NOTHING(INPUT_BYTES);
 
 #endif
 
