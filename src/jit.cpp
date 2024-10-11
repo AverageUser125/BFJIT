@@ -5,6 +5,8 @@
 #include <cstring>
 #include "constants.hpp"
 #include "getch.hpp"
+#include <string>
+#include <iostream>
 
 void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	assert(code.empty());
@@ -121,4 +123,66 @@ void jit_run(const std::vector<uint8_t> code) {
 	uint8_t programMemory[JIT_MEMORY_CAP] = {0};
 
 	((RunFunc)executableCode)(programMemory);
+}
+
+
+void interpretor(const std::vector<Token>& tokens) {
+
+	std::vector<uint8_t> buffer;
+	buffer.resize(512);
+	int idx = 0;
+	size_t tokenIdx = 0;
+
+	while (tokenIdx < tokens.size()) {
+		const Token& tk = tokens[tokenIdx];
+		switch (tk.operand) {
+		case TokenType::ADD:
+			buffer[idx] += tk.size;
+			tokenIdx++;
+			break;
+		case TokenType::SUB:
+			buffer[idx] -= tk.size;
+			tokenIdx++;
+			break;
+		case TokenType::MOVE_RIGHT:
+			idx += tk.size;
+			if (idx >= buffer.size()) {
+				// Resize the buffer if we move beyond its current size
+				buffer.resize(idx + tk.size + 1); // Increase buffer size to fit the new index
+			}
+			tokenIdx++;
+			break;
+		case TokenType::MOVE_LEFT:
+			idx -= tk.size;
+			tokenIdx++;
+			break;
+		case TokenType::OUTPUT:
+			printf("%s", std::string(tk.size, buffer[idx]).c_str());
+			tokenIdx++;
+			break;
+		case TokenType::INPUT:
+			for (size_t i = 0; i < tk.size; i++) {
+				buffer[idx] = MyGetch();
+			}
+			tokenIdx++;
+			break;
+		case TokenType::JUMP_FWD:
+			if (buffer[idx] == 0) {
+				tokenIdx = tokens[tokenIdx].size;
+			} else {
+				tokenIdx++;
+			}
+			break;
+		case TokenType::JUMP_BACK:
+			if (buffer[idx] != 0) {
+				tokenIdx = tokens[tokenIdx].size;
+			} else {
+				tokenIdx++;
+			}
+			break;
+
+		default:
+			assert(0 && "Invalid token type recieved");
+		}
+	}
 }

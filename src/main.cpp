@@ -11,6 +11,9 @@
 #include <iomanip> // For std::hex and std::setfill
 #include "main.hpp"
 #include "jit.hpp"
+#include <termios.h>
+#include <stdio.h>
+
 void printHexArray(const std::vector<uint8_t>& data) {
 	std::cout << "{ ";
 	for (size_t i = 0; i < data.size(); ++i) {
@@ -87,66 +90,6 @@ bool tokenizer(const std::string& code, std::vector<Token>& tokens) {
 	return true;
 }
 
-void interpretor(const std::vector<Token>& tokens) {
-
-	std::vector<uint8_t> buffer;
-	buffer.resize(512);
-	int idx = 0;
-	size_t tokenIdx = 0;
-
-	while (tokenIdx < tokens.size()) {
-		const Token& tk = tokens[tokenIdx];
-		switch (tk.operand) {
-		case TokenType::ADD:
-			buffer[idx] += tk.size;
-			tokenIdx++;
-			break;
-		case TokenType::SUB:
-			buffer[idx] -= tk.size;
-			tokenIdx++;
-			break;
-		case TokenType::MOVE_RIGHT:
-			idx += tk.size;
-			if (idx >= buffer.size()) {
-				// Resize the buffer if we move beyond its current size
-				buffer.resize(idx + tk.size + 1); // Increase buffer size to fit the new index
-			}
-			tokenIdx++;
-			break;
-		case TokenType::MOVE_LEFT:
-			idx -= tk.size;
-			tokenIdx++;
-			break;
-		case TokenType::OUTPUT:
-			std::cout << std::string(tk.size, buffer[idx]);
-			tokenIdx++;
-			break;
-		case TokenType::INPUT:
-			buffer[idx] = std::cin.get();
-			tokenIdx++;
-			break;
-		case TokenType::JUMP_FWD:
-			if (buffer[idx] == 0) {
-				tokenIdx = tokens[tokenIdx].size;
-			} else {
-				tokenIdx++;
-			}
-			break;
-		case TokenType::JUMP_BACK:
-			if (buffer[idx] != 0) {
-				tokenIdx = tokens[tokenIdx].size;
-			} else {		
-				tokenIdx++;
-			}
-			break;
-
-		default:
-			assert(0 && "Invalid token type recieved");
-		}
-	}
-
-}
-
 bool parseArguments(int argc, char* argv[], std::string& inputFile) {
 	assert(inputFile.empty());
 
@@ -190,10 +133,6 @@ bool parseArguments(int argc, char* argv[], std::string& inputFile) {
 	return noJitFlag; // Return JIT flag status
 }
 
-#include <termios.h>
-#include <stdio.h>
-static struct termios old, current;
-
 int main(int argc, char** argv) {
 	std::string filepath = ""; 
 	bool no_jit = parseArguments(argc, argv, filepath);
@@ -206,12 +145,15 @@ int main(int argc, char** argv) {
 		std::cerr << "Tokenization failed\n";
 		return EXIT_FAILURE;
 	}
+	#if PLATFORM_LINUX
+	static struct termios old, current;
+
 	tcgetattr(0, &old);			/* grab old terminal i/o settings */
 	current = old;				/* make new settings same as old settings */
 	current.c_lflag &= ~ICANON; /* disable buffered i/o */
 	current.c_lflag &= ~ECHO; /* set no echo mode */
-	
 	tcsetattr(0, TCSANOW, &current); /* use these new terminal i/o settings now */
+    #endif
 
 	if (no_jit) {
 		interpretor(tokens);
@@ -220,8 +162,8 @@ int main(int argc, char** argv) {
 		jit_compile(tokens, rawCode);
 		jit_run(rawCode);
 	}
-
+    #if PLATFORM_LINUX
 	tcsetattr(0, TCSANOW, &old);
-	
+	#endif
 	return EXIT_SUCCESS;
 }
