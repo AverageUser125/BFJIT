@@ -1,6 +1,8 @@
 #pragma once
 
 #define JIT_MEMORY_CAP 512
+#include <cstdint>
+#include <stddef.h>
 
 enum class TokenType {
 	ADD = '+',

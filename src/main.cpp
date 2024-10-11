@@ -192,9 +192,11 @@ bool parseArguments(int argc, char* argv[], std::string& inputFile) {
 
 
 int main(int argc, char** argv) {
-	std::string filepath; 
+	std::string filepath = ""; 
 	bool no_jit = parseArguments(argc, argv, filepath);
-
+	if (filepath.empty()) {
+		return EXIT_FAILURE;
+	}
 	std::string stringCode = fileToString(filepath); 
 	std::vector<Token> tokens;
 	if (!tokenizer(stringCode, tokens)) {

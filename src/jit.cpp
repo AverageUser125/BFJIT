@@ -3,6 +3,7 @@
 #include "executableMemory.hpp"
 #include <cassert>
 #include <cstring>
+#include "constants.hpp"
 
 #if PLATFORM_WINDOWS
 static const uintptr_t address_putchar = reinterpret_cast<uintptr_t>(&putchar);
@@ -24,6 +25,13 @@ void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 		vec.insert(vec.end(), str, str + size);
 	};
 
+	auto append_to_vector = [](std::vector<uint8_t>& vec, const uint8_t* data, size_t size) {
+		if (size == 0)
+			return;
+		vec.insert(vec.end(), data, data + size);
+	};
+
+
 #if PLATFORM_WINDOWS
 	auto push_uintptr = [](std::vector<uint8_t>& vec, uintptr_t value) {
 		// little endian storing
@@ -32,43 +40,39 @@ void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			value >>= 8; // Shift right by 8 bits to get the next byte
 		}
 	};
-	// calling convention stuff
-	append_cstr_to_vector(code, "\x48\x89\xcf"); // mov rdi, rcx
-	append_cstr_to_vector(code, "\x48\x31\xc9"); // xor rcx, rcx (calling convention);
 #endif
 
+	append_to_vector(code, START_BYTES, START_BYTES_SIZE);
 	for (const Token& tk : tokens) {
 		addresses.push_back(code.size());
 
 		switch (tk.operand) {
 		case TokenType::ADD:
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x80\x07"); // add byte[rdi],
+			append_to_vector(code, ADD_BYTES, ADD_BYTES_SIZE);
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			break;
 		case TokenType::SUB:
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x80\x2f"); // sub byte[rdi],
+			append_to_vector(code, SUB_BYTES, SUB_BYTES_SIZE);
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			break;
 		case TokenType::MOVE_RIGHT: {
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x48\x83\xc7"); // add rdi,
+			append_to_vector(code, MOVE_RIGHT_BYTES, MOVE_RIGHT_BYTES_SIZE);
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			// code.insert(code.end(), &operand, &operand + sizeof(operand)); // when operand = 1, it inserts "1 0 85 208"
 			break;
 		}
 		case TokenType::MOVE_LEFT: {
 			assert(tk.size < 256 && "TODO: support bigger operands");
-			append_cstr_to_vector(code, "\x48\x83\xef"); // sub rdi,
-			uint32_t operand = static_cast<uint32_t>(tk.size);
+			append_to_vector(code, MOVE_LEFT_BYTES, MOVE_LEFT_BYTES_SIZE);
 			code.push_back(static_cast<uint8_t>(tk.size & 0xFF));
 			// code.insert(code.end(), &operand, &operand + sizeof(operand));
 			break;
 		}
 #if PLATFORM_WINDOWS
 		case TokenType::OUTPUT: {
-			// append_cstr_to_vector(code, "\x48\x31\xc0"); // xor rax, rax
 			append_cstr_to_vector(code, "\x8a\x0f"); // mov cl, byte [rdi]
 			append_cstr_to_vector(code, "\x48\xba"); // mov rdx,
 			push_uintptr(code, address_putchar);	 // mov 8 bytes
@@ -113,9 +117,7 @@ void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 #endif
 		case TokenType::JUMP_FWD: {
 			assert(tk.size <= tokens.size());
-			append_cstr_to_vector(code, "\x8a\x07"); // mov al, byte [rdi]
-			append_cstr_to_vector(code, "\x84\xc0"); // test al, al
-			append_cstr_to_vector(code, "\x0f\x84"); // jz
+			append_to_vector(code, JUMP_FWD_BYTES, JUMP_FWD_BYTES_SIZE);
 			size_t operand_byte_addr = code.size();
 			append_cstr_to_vector(code, "\x00\x00\x00\x00", 4);
 			size_t src_byte_addr = code.size();
@@ -127,9 +129,7 @@ void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 			break;
 		}
 		case TokenType::JUMP_BACK: {
-			append_cstr_to_vector(code, "\x8a\x07"); // mov al, byte [rdi]
-			append_cstr_to_vector(code, "\x84\xc0"); // test al, al
-			append_cstr_to_vector(code, "\x0f\x85"); // jnz
+			append_to_vector(code, JUMP_BACK_BYTES, JUMP_BACK_BYTES_SIZE);
 			size_t operand_byte_addr = code.size();
 			append_cstr_to_vector(code, "\x00\x00\x00\x00", 4);
 			size_t src_byte_addr = code.size();
