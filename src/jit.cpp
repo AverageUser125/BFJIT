@@ -11,10 +11,10 @@ void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	std::vector<Backpatch> backpatches;
 	std::vector<size_t> addresses;
 	addresses.reserve(tokens.size());	// exact amount needed
-	backpatches.reserve(tokens.size()); // assuming every operation is jump
-	code.reserve(tokens.size() * 4);	// NOT EVEN CLOSE
+	backpatches.reserve(tokens.size()); // overestimate, assuming every operation is jump
+	code.reserve(tokens.size() * 4);	// rough estimate
 
-	auto append_to_vector = [](std::vector<uint8_t>& vec, const uint8_t* data, size_t size) {
+	auto append_to_vector = [](std::vector<uint8_t>& vec, const uint8_t* data, const size_t size) {
 		if (size == 0)
 			return;
 		vec.insert(vec.end(), data, data + size);

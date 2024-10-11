@@ -59,6 +59,7 @@ CREATE_ARRAY(INPUT_BYTES_REPEAT,
 
 #elif PLATFORM_WINDOWS
 static const uintptr_t address_putchar = reinterpret_cast<uintptr_t>(&putchar);
+
 const auto createOutputStart = []() {
 	// Define a byte array of 12 bytes
 	std::array<uint8_t, 12> byteArray = {
