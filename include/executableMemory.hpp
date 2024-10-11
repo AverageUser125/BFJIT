@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <stddef.h>
 struct Token;
 
 void* getRawMemory(size_t size);
