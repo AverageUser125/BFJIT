@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <array>
 #include "main.hpp"
+#include "getch.hpp"
 
 #define CREATE_ARRAY(name, ...)                                                                                       \
 	constexpr uint8_t name[] = {__VA_ARGS__};                                                                          \
@@ -28,6 +29,22 @@ constexpr void convertToLittleEndian(uint8_t* dst, uintptr_t value) {
 	dst[7] = static_cast<uint8_t>((value >> 56) & 0xFF);
 }
 
+static const uintptr_t address_getchar = reinterpret_cast<uintptr_t>(&MyGetch);
+const auto createInput = []() {
+	std::array<uint8_t, 20> byteArray = {
+		0x48, 0x89, 0xfb,		// mov rbx, rdi (save rdi)
+		0x48, 0xba,				// mov rdx,
+		0x00, 0x00, 0x00, 0x00, // Placeholder for address (first 4 bytes)
+		0x00, 0x00, 0x00, 0x00, // Placeholder for address (last 4 bytes)
+		0xff, 0xd2,				// call rdx
+		0x48, 0x89, 0xdf,		// mov rdi, rbx (restore rdi)
+		0x88, 0x07				// mov byte [rdi], al
+	};
+
+	convertToLittleEndian(byteArray.data() + 5, address_getchar);
+
+	return byteArray;
+};
 
 CREATE_ARRAY(ADD_BYTES, 0x80, 0x07); // add byte[rdi],
 CREATE_ARRAY(SUB_BYTES, 0x80, 0x2f); // sub byte[rdi],
@@ -46,9 +63,9 @@ CREATE_ARRAY(JUMP_BACK_BYTES,
 	0x0f, 0x85  // jz
 );
 
+CREATE_RUNTIME_ARRAY(INPUT_BYTES, createInput);
 
 #if PLATFORM_LINUX
-static const uintptr_t address_getchar = reinterpret_cast<uintptr_t>(&getchar);
 
 CREATE_NOTHING(START_BYTES);
 CREATE_ARRAY(OUTPUT_BYTES,
@@ -61,21 +78,10 @@ CREATE_ARRAY(OUTPUT_BYTES,
 			 0x5f									   // pop rdi
 );
 
-CREATE_ARRAY(INPUT_BYTES,
-			 0x57,									   // push rdi
-			 0x48, 0xc7, 0xc0, 0x01, 0x00, 0x00, 0x00, // mov rax, 1
-			 0x48, 0x89, 0xfe,						   // mov rsi, rdi
-			 0x48, 0xc7, 0xc7, 0x00, 0x00, 0x00, 0x00, // mov rdi, 0
-			 0x48, 0xc7, 0xc2, 0x01, 0x00, 0x00, 0x00, // mov rdx, 1
-			 0x0f, 0x05,							   // syscall
-			 0x5f									   // pop rdi
-);
-
-
 #elif PLATFORM_WINDOWS
 static const uintptr_t address_putchar = reinterpret_cast<uintptr_t>(&putchar);
 
-const auto createOutputStart = []() {
+const auto createOutput = []() {
 	// Define a byte array of 12 bytes
 	std::array<uint8_t, 22> byteArray = {
 		0x8a, 0x0f,				// mov cl, byte [rdi]
@@ -96,10 +102,7 @@ CREATE_ARRAY(START_BYTES, 0x48, 0x89, 0xcf, // mov rdi, rcx
 			 0x48, 0x31, 0xc9				// xor rcx, rcx
 );
 
-CREATE_RUNTIME_ARRAY(OUTPUT_BYTES, createOutputStart);
-
-// TODO: input for windows
-CREATE_NOTHING(INPUT_BYTES);
+CREATE_RUNTIME_ARRAY(OUTPUT_BYTES, createOutput);
 
 #endif
 

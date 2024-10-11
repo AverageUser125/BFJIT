@@ -152,7 +152,7 @@ bool parseArguments(int argc, char* argv[], std::string& inputFile) {
 
 	#ifndef NDEBUG
 	if (argc == 1) {
-		inputFile = RESOURCES_PATH "hello.bf";
+		inputFile = RESOURCES_PATH "cat.bf";
 		return false;
 	}
 	#endif
@@ -190,6 +190,9 @@ bool parseArguments(int argc, char* argv[], std::string& inputFile) {
 	return noJitFlag; // Return JIT flag status
 }
 
+#include <termios.h>
+#include <stdio.h>
+static struct termios old, current;
 
 int main(int argc, char** argv) {
 	std::string filepath = ""; 
@@ -203,7 +206,12 @@ int main(int argc, char** argv) {
 		std::cerr << "Tokenization failed\n";
 		return EXIT_FAILURE;
 	}
-
+	tcgetattr(0, &old);			/* grab old terminal i/o settings */
+	current = old;				/* make new settings same as old settings */
+	current.c_lflag &= ~ICANON; /* disable buffered i/o */
+	current.c_lflag &= ~ECHO; /* set no echo mode */
+	
+	tcsetattr(0, TCSANOW, &current); /* use these new terminal i/o settings now */
 
 	if (no_jit) {
 		interpretor(tokens);
@@ -212,5 +220,8 @@ int main(int argc, char** argv) {
 		jit_compile(tokens, rawCode);
 		jit_run(rawCode);
 	}
+
+	tcsetattr(0, TCSANOW, &old);
+	
 	return EXIT_SUCCESS;
 }

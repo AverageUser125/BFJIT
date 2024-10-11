@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstring>
 #include "constants.hpp"
+#include "getch.hpp"
 
 void jit_compile(const std::vector<Token>& tokens, std::vector<uint8_t>& code) {
 	assert(code.empty());
